@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Regression: skript_train",
+            "type": "python",
+            "request": "launch",
+            "program": "regression/src/skript_train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                // "--no-osm"
+            ]
+        },
+        {
+            "name": "download_more_vars.py",
+            "type": "python",
+            "request": "launch",
+            "program": "regression/src/download_more_vars.py",
+            "console": "integratedTerminal",
+            // "justMyCode": false,
+            "args": [
+                // "--no-osm"
+            ]
+        }
+        {
+            "name": "process_MSB.py",
+            "type": "python",
+            "request": "launch",
+            "program": "regression/src/process_MSB.py",
+            "console": "integratedTerminal",
+            // "justMyCode": false,
+            "args": [
+                // "--no-osm"
+            ]
+        }
+    ]
+}
