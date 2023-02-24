@@ -14,6 +14,8 @@ num_classes = 1  # one for regression
 if os.name == "nt":  # locally
     current_dir_path = dirname(dirname((os.getcwd())))
 
+current_dir_path = "/scratch2/metzgern/HAC/code/So2SatPOP/data"
+
 
 # paths to So2Sat POP Part1 folder
 all_patches_mixed_part1 = os.path.join(current_dir_path, 'So2Sat_POP_Part1')  # path to So2Sat POP Part 1 data folder

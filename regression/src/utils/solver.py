@@ -19,6 +19,7 @@ from utils.transform import RandomRotationTransform, RandomBrightness, RandomGam
 from utils.utils import get_fnames_labs_reg
 from utils.evaluation import evaluate
 
+from tqdm import tqdm
 
 class Solver(object):
     '''
@@ -185,7 +186,7 @@ class Regression_Solver(Solver):
             self.train_metric.reset()
             self.val_metric.reset()
             writer = SummaryWriter(os.path.join(self.exp_dir,'log',self.title))
-            for i, data in enumerate(self.train_loader):
+            for i, data in enumerate(tqdm(self.train_loader)):
                 self.model.train()
                 self.step(data)
                 if i % self.log_steps == self.log_steps-1:       # print every x mini-batches

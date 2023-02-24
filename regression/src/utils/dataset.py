@@ -115,16 +115,16 @@ class PopulationDataset_Reg(PopulationDataset):
 
 def normalize_reg_labels(y):
     y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
-    y_max = np.float(y_stats['max'])
-    y_min = np.float(y_stats['min'])
+    y_max = float(y_stats['max'])
+    y_min = float(y_stats['min'])
     y_scaled = (y - y_min) / (y_max - y_min)
     return y_scaled
 
 
 def denormalize_reg_labels(y_scaled):
     y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
-    y_max = np.float(y_stats['max'])
-    y_min = np.float(y_stats['min'])
+    y_max = float(y_stats['max'])
+    y_min = float(y_stats['min'])
     y = y_scaled * (y_max - y_min) + y_min
     return y
 
@@ -135,6 +135,12 @@ def generate_data(X, ID_temp, channels, data):
     with rasterio.open(ID_temp, 'r') as ds:
         if 'sen2' in data:
             image = ds.read(out_shape=(ds.count, img_rows, img_cols), resampling=Resampling.cubic)
+            # print('Band1 has shape', band1.shape)
+            height = image.shape[1]
+            width = image.shape[2]
+            cols, rows = np.meshgrid(np.arange(width), np.arange(height))
+            xs, ys = rasterio.transform.xy(ds.transform, rows, cols)
+
             if image.shape[0] == 13:
                 ## for sentinel-2 images, reading only the RGB bands
                 image = image[1:4]

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 
 from models.linresnet import linear_resnet50
-
+import copy
 
 class EOResNet(nn.Module):
     '''
@@ -16,11 +16,13 @@ class EOResNet(nn.Module):
         self.model = models.resnet50(pretrained=False) # pretrained=False just for debug reasons
         first_conv_layer = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         first_conv_layer = [first_conv_layer]
+        
+        self.model_x = copy.deepcopy(self.model)
 
         first_conv_layer.extend(list(self.model.children())[1:-1])
         self.model= nn.Sequential(*first_conv_layer) 
 
-        self.clf_layer = nn.Linear(in_features=2048, out_features = num_classes)
+        self.clf_layer = nn.Linear(in_features=2048, out_features=num_classes)
         self.clf_layer.apply(init_weights)        
 
     def forward(self, inputs):
