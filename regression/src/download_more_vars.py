@@ -30,16 +30,22 @@ try:
 except:
     ee.Authenticate(auth_mode="localhost")
     ee.Initialize()
+    # gcloud auth application-default login --no-browser
+
+import time
+time.sleep(0.5)
 
 # EE_CRS = CRS.from_epsg(3857)
 EE_CRS = CRS.from_epsg(4326)
 
-MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland"]
+MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland", "Belgium"]
 medium = ["Italy", "Spain"]
-MSmanually_blocked_cities = ["zaragoza"]
-good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland", "Denmark" ]
+MSmanually_blocked_cities = ["zaragoza", "bologna", "murica", "alicante", "palma", "valencia", "sevilla", "cordoba"]
+good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland", "Denmark", "Latvia"]
 
-MSmanually_checked_cities = {"riga": "Latvia", "bari": "Italy", "palermo": "Italy", "lisbon": "Portugal"}
+MSmanually_checked_cities = {"riga": "Latvia", 
+                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy",
+                             "bilbao": "Spain", "valladolid": "Spain","lisbon": "Portugal"}
 
 rename_countries = {"Czechia": "Czech_Republic"}
 
@@ -119,8 +125,8 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
         if country_name in medium:
             print("please check if there is really data available")  
             # raise Exception("TODO: Still need to check the availablitiy of MSB footprints for cities here")
-        else:
-            continue
+        
+        # continue
 
 
         for index in tqdm(range(0, len(classes_paths))):
@@ -212,6 +218,7 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
 
             if (task_id + 1) % 3000 ==0:
                 print("take a break to give google EE some time to process ;)")
+                time.sleep(60)
 
     return None
 
