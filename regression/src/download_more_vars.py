@@ -33,31 +33,47 @@ except:
     # gcloud auth application-default login --no-browser
 
 import time
-time.sleep(0.5)
+# time.sleep(0.5)
 
 # EE_CRS = CRS.from_epsg(3857)
 EE_CRS = CRS.from_epsg(4326)
 
 MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland", "Belgium"]
 medium = ["Italy", "Spain"]
-MSmanually_blocked_cities = ["zaragoza", "bologna", "murica", "alicante", "palma", "valencia", "sevilla", "cordoba"]
-good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland", "Denmark", "Latvia"]
+MSmanually_blocked_cities = ["zaragoza", "bologna", "murcia", "alicante", "palma", "valencia",
+                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona", "tallinn"]
+good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland",
+        "Denmark", "Latvia", "Bulgaria", "Lithuania", "Norway"]
 
 MSmanually_checked_cities = {"riga": "Latvia", 
-                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy",
+                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy", "genoa": "Italy",
                              "bilbao": "Spain", "valladolid": "Spain","lisbon": "Portugal"}
 
 rename_countries = {"Czechia": "Czech_Republic"}
 
 
 # done_cities = ["zagreb", "budapest", "riga", "bari"]
-MSdone_cities = ["zagreb", "budapest", "riga", "bari"]
-S1done_cities = ["leipzig"]
-# gcloud auth login --remote-bootstrap="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsdk.cloud.google.com%2Fapplicationdefaultauthcode.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fearthengine+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.full_control+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faccounts.reauth&state=JxOD4NAMO70eVCK3e5VK5Ga53M2CGF&prompt=consent&access_type=offline&code_challenge=JqIR_YDSAVUNu5pkOruqBeB84xNrT0mXAbTGvWmdlxU&code_challenge_method=S256"
+MSdone_cities = ["zagreb", "budapest", "riga", "bari"] + ["plovdiv", "gdansk", "bucharest"] + ["murcia", "rome", "sofia",
+                "warsaw", "wroclaw", "poznan", "oslo", "brno", "milan", "timisoara", "genoa", "vilnius", "lubin", "bilbao", "copenhagen", "cluj-napoca",
+                "prague", "milan", "lodz", "naples"
+                ]
 
+S1done_cities = ["leipzig", "zagreb", "budapest" , "riga" , "edinburgh" , "dresden"] + [ #zagreb
+                "london", "bari", "plovdiv", "gdansk", "zaragoza", "glasgow", "bucharest", "zurich", "marseille", "muenster", "stuttgart", "bielefeld"] +[
+                "amsterdam", "stoke-on-trent", "sunderland", "bologna", "leicester", "murcia", "rome", "sofia", "barcelona",
+                "warsaw", "nottingham", "wroclaw", "poznan", "oslo", "munich", "brno", "bremen", "timisoara", "florence", "genoa", "toulouse",
+                "vilnius", "catania", "lubin", "hannover", "berlin", "alicante", "liverpool", "madrid", "reading", "rotterdam", "bilbao", "cardiff",
+                "copenhagen", "nates", "karlsruhe", "cluj-napoca", "frankfurtammain", "prague", "dublin", "preston",  "tallinn",  "milan",  "lodz", "naples",
+                "thessaloniki"
+                 ]
+
+# gcloud auth login --remote-bootstrap="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsdk.cloud.google.com%2Fapplicationdefaultauthcode.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fearthengine+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.full_control+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faccounts.reauth&state=JxOD4NAMO70eVCK3e5VK5Ga53M2CGF&prompt=consent&access_type=offline&code_challenge=JqIR_YDSAVUNu5pkOruqBeB84xNrT0mXAbTGvWmdlxU&code_challenge_method=S256"
 Sentinel1_start_date = '2017-07-03'
 Sentinel1_finish_date = '2017-08-30'
 orbit = 'DESCENDING'
+
+def start(task):
+    task.start()
 
 def get_country_name(file_name): 
 
@@ -96,7 +112,13 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
     :param path: path to patch folder (sen2spring)
     :return: gives the paths of all the tifs and its corresponding class labels
     """
+    MS_downlaod_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/'
+
     city_folders = glob.glob(join(path, "*"))
+    inv = True
+    if inv:
+        city_folders = city_folders[::-1]
+
     f_names_all = np.array([])
     labs_all = np.array([])
     task_id = 0
@@ -117,20 +139,24 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
         classes_pathsMSB = [data_pathMSB + '/Class_' + x + '/' for x in classes_str]
         classes_pathsS1 = [data_pathS1 + '/Class_' + x + '/' for x in classes_str]
         city = each_city.split("_")[-1] 
+
         
         country_name,_ = get_country_name(classes_paths[0] + str(ids[0]) + '_sen2spring.tif')
-
         print(city, ",", country_name)
-
         if country_name in medium:
-            print("please check if there is really data available")  
-            # raise Exception("TODO: Still need to check the availablitiy of MSB footprints for cities here")
+            print("Disclaimer: please check if there is really MS data available")  
+            # raise Exception("Still need to check the availablitiy of MSB footprints for cities here")
         
         # continue
+        city_idx = 0
+        class_city_idx = 0
+
+        Classlist = []
 
 
         for index in tqdm(range(0, len(classes_paths))):
             file_name = classes_paths[index] + str(ids[index]) + '_sen2spring.tif'
+
 
             name_MSB = str(ids[index]) + '_MSB'
             name_S1 = str(ids[index]) + '_S1'
@@ -138,35 +164,51 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
             file_name_S1 = classes_pathsS1[index] + str(ids[index]) + '_S1'
 
 
-            #check if the MSB Footprints
+            descriptionMSB = name_MSB + "_" + city
+            descriptionS1 = name_S1 + "_" + city
+
+            folderMSB = "So2Satdata/" + classes_pathsMSB[index]
+            folderMSB = folderMSB.replace("/", "／")
+            geojsonfile = join(join(MS_downlaod_dir,folderMSB), descriptionMSB+".geojson")
+
+            folderS1 = "So2Satdata/" + classes_pathsS1[index]
+            folderS1 = folderS1.replace("/", "／")
+            S1file = join(join(MS_downlaod_dir,folderS1), descriptionS1 + ".tif")
+
+            #check if the MSB Footprints is needed
             download_MSB = True
             if country_name in MSB_no_data_countries:
-                download_MSB = False
-
+                download_MSB = False 
             if city in MSdone_cities:
-                download_MSB = False
-
+                download_MSB = False 
             if country_name is None:
                 # there are some cities where countryname== is still oke, because they are by the sea
                 if city in MSmanually_checked_cities.keys():
                     pass
                     country_name = MSmanually_checked_cities[city]
                 else:
-                    download_MSB = False
-            
+                    download_MSB = False 
             if city in MSmanually_blocked_cities:
+                download_MSB = False 
+            if isfile(geojsonfile):
                 download_MSB = False
 
-            
             # Check if downloading of S1 is needed
             download_S1 = True 
             if city in S1done_cities:
+                download_S1 = False
+            if isfile(S1file):
                 download_S1 = False
 
 
             if download_MSB or download_S1: 
                 this_country, exportarea = get_country_name(file_name)
+                if this_country in MSB_no_data_countries:
+                    download_MSB = False
                 this_country = country_name if this_country is None else this_country
+                if classes_paths[index][-3:-1] not in Classlist:
+                    Classlist.append(classes_paths[index][-3:-1])
+                    class_city_idx = 0
 
             if download_MSB:
                 Bfeature = ee.FeatureCollection('projects/sat-io/open-datasets/MSBuildings/'+this_country)
@@ -177,10 +219,22 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
                     fileFormat = 'GeoJSON',
                     folder = "So2Satdata/" + classes_pathsMSB[index], 
                 )
+                try:
+                    start(task)
+                except ee.ee_exception.EEException:
+                    for i in range(32):
+                        print("Congrats. too-many jobs. EE is at it's limit. taking a 10s pause...") 
+                        time.sleep(10)
+                        try:
+                            start(task)
+                        except:
+                            pass
+                        else:
+                            break
+                        if i>30:
+                            raise Exception("Could not submit EE job")
                 tasks.append(task)
-                task.start()
-                task.status()
-
+                task.status() 
                 task_id +=1
 
             if download_S1:
@@ -210,21 +264,44 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
                     region = exportarea,
                     crs='EPSG:4326'
                 )
-                tasks.append(task)
-                task.start()
-                task.status()
-
+                try:
+                    start(task)
+                except ee.ee_exception.EEException:
+                    for i in range(32):
+                        print("Congrats. too-many jobs. EE is at it's limit. taking a 10s pause...")
+                        time.sleep(10)
+                        try:
+                            start(task)
+                        except:
+                            pass
+                        else:
+                            break 
+                        if i>30:
+                            raise Exception("Could not submit EE job")
+                task.status() 
+                # tasks.append(task)
                 task_id +=1
+                task.status() 
+                task_id +=1
+
+            if city_idx==0 or class_city_idx==0:
+                #preventing that the first two jobs finish at exacly the same time and create duplicate folders...
+                if download_S1 or download_MSB:
+                    time.sleep(15)
 
             if (task_id + 1) % 3000 ==0:
                 print("take a break to give google EE some time to process ;)")
-                time.sleep(60)
+                time.sleep(30)
+
+            city_idx += 1
+            class_city_idx += 1
 
     return None
 
 
 def process():
     data_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/So2Sat_POP_Part1/train'
+    # data_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/So2Sat_POP_Part1/train'
     extend_dataset(data_dir, data_to_download=["MSBuildings"])
     return
 

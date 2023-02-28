@@ -16,6 +16,7 @@ import ee
 try:
     ee.Initialize()
 except:
+    print("couldn't init EE")
     ee.Authenticate(auth_mode="localhost")
     ee.Initialize()
 
@@ -24,18 +25,24 @@ EE_CRS = CRS.from_epsg(4326)
 
 
 MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland"]
-medium = ["Italy", "Spain"]
-MSmanually_blocked_cities = ["zaragoza"]
-good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland", "Denmark" ]
-
-MSmanually_checked_cities = {"riga": "Latvia", "bari": "Italy", "palermo": "Italy", "lisbon": "Portugal"}
+medium = ["Italy", "Spain"] 
+MSmanually_blocked_cities = ["zaragoza", "bologna", "murcia", "alicante", "palma", "valencia",
+                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona"]
+MSmanually_checked_cities = {"riga": "Latvia", 
+                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy",
+                             "bilbao": "Spain", "valladolid": "Spain","lisbon": "Portugal"}
 
 rename_countries = {"Czechia": "Czech_Republic"}
 
 # MSdone_cities = ["zagreb", "budapest", "riga", "bari"]
-MSdone_cities = []
-S1done_cities = []
-
+MSdone_cities = ["zagreb", "budapest", "riga", "bari", "plovdiv", "bucharest", "gdansk",
+                #  ""
+                 ]
+S1done_cities = ["leipzig","zagreb", "budapest", "riga", "edinburgh", "london", "bucharest"
+                 
+                "dresden", "london", "bari", "plovdiv", "gdansk", "zaragoza", "glasgow", "marseille", "stuttgart", "glasgow", "zurich", "marseille", "muenster",
+                
+                 ]
 
 def write_raster_like(output, output_path, guide_tiff):
     with rasterio.Env():
@@ -97,7 +104,7 @@ def get_country_name(file_name):
     return country_name, polyshape
 
 
-def process_data(target_data_dir,MS_downlaod_dir):
+def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
     city_folders = glob.glob(join(target_data_dir, "*"))
     f_names_all = np.array([])
     labs_all = np.array([])
@@ -183,8 +190,11 @@ def process_data(target_data_dir,MS_downlaod_dir):
             if city in MSmanually_blocked_cities:
                 process_MSB = False
 
+            if isfile(file_name_MSBs) and (not force_reprocess):
+                process_MSB = False
 
 
+            # Start processing the MSBuildings
             if process_MSB:
 
                 with rasterio.open(file_name) as src: 
@@ -267,9 +277,10 @@ def process_data(target_data_dir,MS_downlaod_dir):
                     buildingsdf_valid = buildingsdf[buildingsdf["valid"]]
                     shapes = buildingsdf_valid["geometry"].apply(lambda inpoly: transform_geom(EE_CRS, this_crs, inpoly))
 
-
+                # write the Building counts
                 write_raster_like(output, output_path=file_name_MSBc, guide_tiff=file_name)
                 
+                # write the segmentation masks
                 this_meta.update({"count": 1, "dtype": "float32"})
                 with rasterio.open(file_name_MSBs, 'w+', **this_meta) as out:
                     if no_shapes:
@@ -283,15 +294,17 @@ def process_data(target_data_dir,MS_downlaod_dir):
             # Also put the Sentinel-1 tile with the correct projection in the correct folder
             # Check if downloading of S1 is needed
             process_S1 = True 
-            if city in S1done_cities:
+            if (city in S1done_cities) and (not force_reprocess):
                 process_S1 = False
 
+            if isfile(file_name_S1):
+                process_S1 = False
+
+
+            # Start processing the Sentinel-1
             if process_S1:
-                # transform_geom(EE_CRS, this_crs, inpoly)
-                
                 with rasterio.open(S1file) as src: 
                     s1raster = src.read((1,2))
-
                 write_raster_like(s1raster, output_path=file_name_S1, guide_tiff=file_name)
 
 
