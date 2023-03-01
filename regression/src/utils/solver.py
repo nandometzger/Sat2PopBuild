@@ -34,11 +34,13 @@ class Solver(object):
         exp_dir: Experiment Directoy - Where to save the results
         osm: (bool) if osm data should be used or not
     '''
-    def __init__(self, hparams_dict, model, num_classes, loss_fct, PytorchDataset, exp_dir = None, osm=True, continue_train=False, model_name=None):
+    def __init__(self, hparams_dict, model, num_classes, loss_fct, PytorchDataset, exp_dir = None, osm=True, continue_train=False, model_name=None,
+                 satmode=False):
         super().__init__()
         self.exp_dir = exp_dir
         self.osm = osm
         self.continue_train = continue_train
+        self.satmode = satmode 
         if self.continue_train == False:
             self.hparams_dict = hparams_dict
         else:
@@ -80,7 +82,7 @@ class Solver(object):
         else:
             self._reset_histories()
 
-        self.scaler =torch.cuda.amp.GradScaler()
+        self.scaler = torch.cuda.amp.GradScaler()
         self.criterion = loss_fct()
 
     def _load_data(self):
@@ -91,7 +93,7 @@ class Solver(object):
             RandomGamma(),
             RandomBrightness()
         ])
-        params = {'dim': (img_rows, img_cols)}
+        params = {'dim': (img_rows, img_cols), "satmode": self.satmode}
 
         val_size = 0.2
         self.data_dir = all_patches_mixed_train_part1
@@ -119,7 +121,10 @@ class Solver(object):
         if self.osm is True:
             self.model = self.model(input_channels=10, num_classes=self.num_classes, scale_factor=self.model_scale)
         else:
-            self.model = self.model(input_channels=10, num_classes=self.num_classes)
+            if self.satmode:
+                self.model = self.model(input_channels=8, num_classes=self.num_classes)
+            else:
+                self.model = self.model(input_channels=10, num_classes=self.num_classes)
         self.model.to(self.device)
         self.optimizer = torch.optim.AdamW(self.model.parameters(),
                                             lr=self.lr,
@@ -150,7 +155,7 @@ class Regression_Solver(Solver):
     Solver for Regression Task
     '''
     def __init__(self, hparams_dict, model=EO2ResNet_OSM, exp_dir=None, loss_fct=nn.MSELoss, osm=True,
-                 continue_train=False, model_name=None):
+                 continue_train=False, model_name=None, satmode=False):
         super(Regression_Solver, self).__init__(hparams_dict=hparams_dict,
                                                 model=model,
                                                 num_classes=1,
@@ -159,7 +164,8 @@ class Regression_Solver(Solver):
                                                 exp_dir=exp_dir,
                                                 osm=osm,
                                                 continue_train=continue_train,
-                                                model_name=model_name)
+                                                model_name=model_name,
+                                                satmode=satmode)
 
         self.metric = self.criterion
 
@@ -190,8 +196,12 @@ class Regression_Solver(Solver):
                 self.model.train()
                 self.step(data)
                 if i % self.log_steps == self.log_steps-1:       # print every x mini-batches
-                    print(f'{i+1}/{len(self.train_loader)}, train_loss: {self.iteration_loss.avg}'
-                        f', scaled_loss: {self.iteration_loss.avg*53119.0}')
+                    if self.satmode:
+                        print(f'{i+1}/{len(self.train_loader)}, train_loss: {self.iteration_loss.avg/53119.0}'
+                            f', scaled_loss: {self.iteration_loss.avg}')
+                    else:
+                        print(f'{i+1}/{len(self.train_loader)}, train_loss: {self.iteration_loss.avg}'
+                            f', scaled_loss: {self.iteration_loss.avg*53119.0}')
                     self.iteration_loss.reset()
             self.train_loss_history.append(self.epoch_loss.avg)
             self.train_metric_history.append(self.train_metric.avg)
@@ -210,8 +220,12 @@ class Regression_Solver(Solver):
                 best_metric_epoch = epoch+1
                 self.save(best_metric_val, best_metric_epoch)
                 print('saved model with new best MAE: {}'.format(best_metric_val))
-            print(f'epoch {epoch + 1}, Validation Loss {self.val_epoch_loss.avg}, MAE: {self.val_metric.avg}'
-                f', scaled MAE: {self.val_metric.avg * 53119.0}')
+            if self.satmode:
+                print(f'epoch {epoch + 1}, Validation Loss {self.val_epoch_loss.avg}, MAE: {self.val_metric.avg}'
+                    f', scaled MAE: {self.val_metric.avg})')
+            else:
+                print(f'epoch {epoch + 1}, Validation Loss {self.val_epoch_loss.avg}, MAE: {self.val_metric.avg}'
+                    f', scaled MAE: {self.val_metric.avg * 53119.0}')
             writer.add_scalar('val_epoch_loss', self.val_epoch_loss.avg, epoch + 1)
             writer.add_scalar('val_mae', self.val_metric.avg, epoch + 1)
             if epoch == 2:
@@ -223,7 +237,7 @@ class Regression_Solver(Solver):
         print(f'Finished Training. Best MAE: {best_metric_val} on val at epoch: {best_metric_epoch}')
         writer.add_hparams(self.hparams_dict, {'best Accuracy on Validation Set': best_metric_val})
         writer.close()
-        evaluate(model=EO2ResNet_OSM, model_name=self.title + '_model', exp_dir=self.exp_dir, osm_flag=self.osm)
+        evaluate(model=EO2ResNet_OSM, model_name=self.title + '_model', exp_dir=self.exp_dir, osm_flag=self.osm, satmode=self.satmode)
         return best_metric_val * 53119.0
 
     def step(self, data):
@@ -234,11 +248,16 @@ class Regression_Solver(Solver):
                 data['label'].to(self.device), data['osm'].to(self.device)
             preds = self.model(inputs, osm)
         else:
+
             inputs, targets = data['input'].to(self.device), data['label'].to(self.device)
             preds = self.model(inputs)
+            if self.satmode:
+                preds, buildingpreds = preds 
+
         preds = preds.view(-1)
         with torch.cuda.amp.autocast():
             loss = self.criterion(preds, targets)
+            
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
@@ -256,6 +275,8 @@ class Regression_Solver(Solver):
             else:
                 inputs, targets = val_data['input'].to(self.device), val_data['label'].to(self.device)
                 preds = self.model(inputs)
+                if self.satmode:
+                    preds, buildingpreds = preds 
             preds = preds.view(-1)
             val_loss = self.criterion(preds, targets)
             self.val_epoch_loss.update(val_loss.item())

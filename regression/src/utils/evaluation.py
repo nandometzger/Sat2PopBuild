@@ -17,7 +17,7 @@ from captum.attr import visualization as viz
 import matplotlib.pyplot as plt
 
 
-def evaluate(model, model_name, exp_dir, osm_flag):
+def evaluate(model, model_name, exp_dir, osm_flag, satmode):
     """
     Function to evaluate all cities at once
     ------------
@@ -82,7 +82,7 @@ def evaluate(model, model_name, exp_dir, osm_flag):
     print('Logs saved at:', os.path.join(exp_dir, 'log', title.replace('_model', '')))
 
 
-def evaluate_citywise_id(model, model_name, exp_dir, osm_flag, data_dir):
+def evaluate_citywise_id(model, model_name, exp_dir, osm_flag, data_dir, satmode):
     """
     Function to evaluate data city wise and return IDs
     ------------
@@ -219,7 +219,7 @@ def evaluate_citywise_id(model, model_name, exp_dir, osm_flag, data_dir):
             city_preds[i*batch_size:i*batch_size+preds.shape[0]] = preds
             city_targets[i*batch_size:i*batch_size+preds.shape[0]] = targets
 
-            denormalized_dict['preds'][city_name][ID] = denormalize_reg_labels(preds.item())
+            denormalized_dict['preds'][city_name][ID] = denormalize_reg_labels(preds.item(), satmode=satmode)
             denormalized_dict['targets'][city_name][ID] = targets.item()
 
         all_targets = torch.cat([all_targets, city_targets])

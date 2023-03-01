@@ -10,9 +10,22 @@
             "request": "launch",
             "program": "regression/src/skript_train.py",
             "console": "integratedTerminal",
-            "justMyCode": false,
+            "justMyCode": true,
             "args": [
-                // "--no-osm"
+                "--no-osm",
+                "--satmode",
+                "--name-json", "NJUNet"
+            ]
+        },
+        {
+            "name": "Regression: skript_train classic",
+            "type": "python",
+            "request": "launch",
+            "program": "regression/src/skript_train.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--no-osm",
             ]
         },
         {

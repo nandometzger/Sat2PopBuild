@@ -28,7 +28,7 @@ Create a conda environment with python 3.8
 
 Packages:
 ```
-torch==1.13.1 torchvision==0.11.1 tensorboard==2.11.0 seaborn==0.12.1 matplotlib==3.6.2 opencv-python==4.6.0.66 pandas==1.1.3 scikit-learn==1.0.1 scipy==1.9.3 geopandas==0.12.1 captum==0.5.0
+torch==1.13.1 torchvision==0.11.1 tensorboard==2.11.0 seaborn==0.12.1 matplotlib==3.6.2 opencv-python==4.6.0.66 pandas==1.1.3 scikit-learn scipy==1.9.3 geopandas==0.12.1 captum==0.5.0
 ```
 
 

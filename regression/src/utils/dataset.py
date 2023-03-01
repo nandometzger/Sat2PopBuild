@@ -34,7 +34,7 @@ class PopulationDataset(Dataset):
     """
 
     def __init__(self, list_IDs, labels, dim=(img_rows, img_cols), n_classes=num_classes, transform=None, test=False,
-                 mode=None):
+                 mode=None, satmode=False):
         self.dim = dim
         self.labels = labels
         self.list_IDs = list_IDs
@@ -42,6 +42,7 @@ class PopulationDataset(Dataset):
         self.transform = transform
         self.test = test
         self.mode = mode
+        self.satmode = satmode
 
     def __len__(self):
         return len(self.labels)
@@ -56,29 +57,54 @@ class PopulationDataset(Dataset):
             lu_X = np.zeros((4, *self.dim))
             dem_X = np.zeros((1, *self.dim))
         else:
-            sen2spr_X = np.empty((*self.dim, 3))
-            viirs_X = np.empty((*self.dim, 1))
-            osm_X = np.empty((osm_features, 1))
-            lcz_X = np.empty((*self.dim, 1))
-            lu_X = np.empty((*self.dim, 4))
-            dem_X = np.empty((*self.dim, 1))
+            if self.satmode:
 
-            # preparing the batch from other datasets
-            ID_spring = ID_temp  # batch from sen2 autumn
-            ID_viirs = ID_temp.replace('sen2spring', 'viirs')
-            ID_osm = ID_temp.replace('sen2spring', 'osm_features').replace('tif', 'csv')
-            ID_lcz = ID_temp.replace('sen2spring', 'lcz')
-            ID_lu = ID_temp.replace('sen2spring', 'lu')
-            ID_dem = ID_temp.replace('Part1', 'Part2').replace('sen2spring', 'dem')
+                sen2spr_X = np.empty((*self.dim, 3))
+                viirs_X = np.empty((*self.dim, 1)) 
+                osm_X = np.empty((osm_features, 1))
+                lu_X = np.empty((*self.dim, 4))
+                # dem_X = np.empty((*self.dim, 1))
 
-            sen2spr_X = generate_data(sen2spr_X, ID_spring, channels=3, data='sen2spring')
-            viirs_X = generate_data(viirs_X, ID_viirs, channels=1, data='viirs')
-            osm_X = generate_osm_data(osm_X, ID_osm, mm_scaler, channels=1)
-            lcz_X = generate_data(lcz_X, ID_lcz, channels=1, data='lcz')
-            lu_X = generate_data(lu_X, ID_lu, channels=4, data='lu')
-            dem_X = generate_data(dem_X, ID_dem, channels=1, data='dem')
+                # preparing the batch from other datasets
+                ID_spring = ID_temp  # batch from sen2 autumn
+                ID_viirs = ID_temp.replace('sen2spring', 'viirs')
+                ID_osm = ID_temp.replace('sen2spring', 'osm_features').replace('tif', 'csv')
+                ID_lu = ID_temp.replace('sen2spring', 'lu')
+                # dem_X = generate_data(dem_X, ID_dem, channels=1, data='dem')
+                # TODO: check if MS buildings exist, and load them
+                # TODO: load S1 imagery
+                #
 
-            return np.concatenate((sen2spr_X, viirs_X, lcz_X, lu_X, dem_X), axis=0), osm_X
+                sen2spr_X = generate_data(sen2spr_X, ID_spring, channels=3, data='sen2spring')
+                viirs_X = generate_data(viirs_X, ID_viirs, channels=1, data='viirs')  
+                osm_X = generate_osm_data(osm_X, ID_osm, mm_scaler, channels=1)
+                lu_X = generate_data(lu_X, ID_lu, channels=4, data='lu') 
+
+                return np.concatenate((sen2spr_X, viirs_X, lu_X), axis=0), osm_X , np.argmax(lu_X,0)>0.5
+            else:
+                sen2spr_X = np.empty((*self.dim, 3))
+                viirs_X = np.empty((*self.dim, 1))
+                osm_X = np.empty((osm_features, 1))
+                lcz_X = np.empty((*self.dim, 1))
+                lu_X = np.empty((*self.dim, 4))
+                dem_X = np.empty((*self.dim, 1))
+
+                # preparing the batch from other datasets
+                ID_spring = ID_temp  # batch from sen2 autumn
+                ID_viirs = ID_temp.replace('sen2spring', 'viirs')
+                ID_osm = ID_temp.replace('sen2spring', 'osm_features').replace('tif', 'csv')
+                ID_lcz = ID_temp.replace('sen2spring', 'lcz')
+                ID_lu = ID_temp.replace('sen2spring', 'lu')
+                ID_dem = ID_temp.replace('Part1', 'Part2').replace('sen2spring', 'dem') 
+
+                sen2spr_X = generate_data(sen2spr_X, ID_spring, channels=3, data='sen2spring')
+                viirs_X = generate_data(viirs_X, ID_viirs, channels=1, data='viirs')
+                osm_X = generate_osm_data(osm_X, ID_osm, mm_scaler, channels=1)
+                lcz_X = generate_data(lcz_X, ID_lcz, channels=1, data='lcz')
+                lu_X = generate_data(lu_X, ID_lu, channels=4, data='lu')
+                dem_X = generate_data(dem_X, ID_dem, channels=1, data='dem')
+
+                return np.concatenate((sen2spr_X, viirs_X, lcz_X, lu_X, dem_X), axis=0), osm_X
 
 
 class PopulationDataset_Reg(PopulationDataset):
@@ -86,22 +112,28 @@ class PopulationDataset_Reg(PopulationDataset):
     Population Dataset for Standard Regression Task
     """
 
-    def __init__(self, list_IDs, labels, dim=(img_rows, img_cols), transform=None, test=False, mode=None):
+    def __init__(self, list_IDs, labels, dim=(img_rows, img_cols), transform=None, test=False, mode=None, satmode=False):
         super(PopulationDataset_Reg, self).__init__(list_IDs=list_IDs,
                                                     labels=labels,
                                                     dim=dim,
                                                     transform=transform,
                                                     test=test,
-                                                    mode=mode)
+                                                    mode=mode,
+                                                    satmode=satmode)
+        self.satmode = satmode
 
     def __getitem__(self,idx):
         ID_temp = self.list_IDs[idx]
         # Generate data
-        X, osm = self.data_generation(ID_temp)
+        if self.satmode:
+            X, osm, msb = self.data_generation(ID_temp)
+        else:
+            X, osm = self.data_generation(ID_temp)
+
         ID = ID_temp.split(os.sep)[-1].split('_sen2')[0]
         y = self.labels[idx]
         if self.test == False:
-            y = normalize_reg_labels(y)
+            y = normalize_reg_labels(y, satmode=True)
         else:
             y = y
         X = torch.from_numpy(X).type(torch.FloatTensor)
@@ -109,20 +141,31 @@ class PopulationDataset_Reg(PopulationDataset):
         osm = torch.from_numpy(osm).type(torch.FloatTensor)
         if self.transform:
             X = self.transform(X)
-        sample = {'input':X, 'label':y, 'osm':osm, 'identifier':ID}
+        if self.satmode:
+            sample = {'input': X, 'label': y, 'msb': msb, 'osm': osm, 'identifier': ID}
+        else:
+            sample = {'input': X, 'label': y, 'osm': osm, 'identifier': ID}
+
         return sample
 
 
-def normalize_reg_labels(y):
-    y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
+def normalize_reg_labels(y, satmode=False):
+    if satmode:
+        y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats_dummy.json'))
+    else:
+        y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
     y_max = float(y_stats['max'])
     y_min = float(y_stats['min'])
     y_scaled = (y - y_min) / (y_max - y_min)
     return y_scaled
 
 
-def denormalize_reg_labels(y_scaled):
-    y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
+def denormalize_reg_labels(y_scaled, satmode=False):
+    if satmode:
+        y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats_dummy.json'))
+    else:
+        y_stats = load_json(os.path.join(config_path, 'dataset_stats', 'label_stats.json'))
+
     y_max = float(y_stats['max'])
     y_min = float(y_stats['min'])
     y = y_scaled * (y_max - y_min) + y_min

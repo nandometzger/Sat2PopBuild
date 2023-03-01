@@ -55,7 +55,7 @@ rename_countries = {"Czechia": "Czech_Republic"}
 # done_cities = ["zagreb", "budapest", "riga", "bari"]
 MSdone_cities = ["zagreb", "budapest", "riga", "bari"] + ["plovdiv", "gdansk", "bucharest"] + ["murcia", "rome", "sofia",
                 "warsaw", "wroclaw", "poznan", "oslo", "brno", "milan", "timisoara", "genoa", "vilnius", "lubin", "bilbao", "copenhagen", "cluj-napoca",
-                "prague", "milan", "lodz", "naples"
+                "prague", "milan", "lodz", "naples", "helsinki", "bratislava", "stockholm", "katowice", "palermo"
                 ]
 
 S1done_cities = ["leipzig", "zagreb", "budapest" , "riga" , "edinburgh" , "dresden"] + [ #zagreb
@@ -64,8 +64,9 @@ S1done_cities = ["leipzig", "zagreb", "budapest" , "riga" , "edinburgh" , "dresd
                 "warsaw", "nottingham", "wroclaw", "poznan", "oslo", "munich", "brno", "bremen", "timisoara", "florence", "genoa", "toulouse",
                 "vilnius", "catania", "lubin", "hannover", "berlin", "alicante", "liverpool", "madrid", "reading", "rotterdam", "bilbao", "cardiff",
                 "copenhagen", "nates", "karlsruhe", "cluj-napoca", "frankfurtammain", "prague", "dublin", "preston",  "tallinn",  "milan",  "lodz", "naples",
-                "thessaloniki"
-                 ]
+                "lisbon", "thessaloniki", "nurenberg", "helsinki", "nantes", "katowice",
+                "bratislava", "stockholm", "valencia", "utrecht", "palma", "lyon", "cologne", "katowice", "palermo"
+                ]
 
 # gcloud auth login --remote-bootstrap="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsdk.cloud.google.com%2Fapplicationdefaultauthcode.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fearthengine+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.full_control+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faccounts.reauth&state=JxOD4NAMO70eVCK3e5VK5Ga53M2CGF&prompt=consent&access_type=offline&code_challenge=JqIR_YDSAVUNu5pkOruqBeB84xNrT0mXAbTGvWmdlxU&code_challenge_method=S256"
 Sentinel1_start_date = '2017-07-03'
@@ -115,7 +116,7 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
     MS_downlaod_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/'
 
     city_folders = glob.glob(join(path, "*"))
-    inv = True
+    inv = False
     if inv:
         city_folders = city_folders[::-1]
 
@@ -153,10 +154,8 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
 
         Classlist = []
 
-
         for index in tqdm(range(0, len(classes_paths))):
             file_name = classes_paths[index] + str(ids[index]) + '_sen2spring.tif'
-
 
             name_MSB = str(ids[index]) + '_MSB'
             name_S1 = str(ids[index]) + '_S1'

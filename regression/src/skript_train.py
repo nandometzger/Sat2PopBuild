@@ -6,7 +6,7 @@ import argparse
 from torch import nn
 from utils.solver import Regression_Solver as Solver
 from utils.constants import config_path, exp_path
-from models.regression import EO2ResNet_OSM, EOResNet
+from models.regression import EO2ResNet_OSM, EOResNet, PomeloUNet, JacobsUNet
 from utils.file_folder_ops import load_json
 
 def parse():
@@ -14,6 +14,8 @@ def parse():
     parser.add_argument('-j', '--name-json', type=str, help='name of json_file containing the hyperparameters',
                         default="standard")
     parser.add_argument('-o', '--no-osm', help='If set, Training Skript wont use OSM Data', default=False,
+                        action='store_true')
+    parser.add_argument('-s', '--satmode', help='Using Satellite Data only', default=False,
                         action='store_true')
     parser.add_argument('-m', '--model-name', type=str, help='if argument is given, skript will continue training '
                                                              'given model\
@@ -44,7 +46,11 @@ if __name__ == "__main__":
         model = EO2ResNet_OSM
     else:
         print('Not using OSM Data')
-        model = EOResNet
+        if args.satmode:
+            model = PomeloUNet
+            model = JacobsUNet
+        else:
+            model = EOResNet
     loss_fct = nn.MSELoss
     solver = Solver(hparams_dict, 
                     exp_dir=exp_path, 
@@ -52,5 +58,6 @@ if __name__ == "__main__":
                     osm=osm, 
                     loss_fct=loss_fct, 
                     continue_train=continue_train, 
-                    model_name=model_name)
+                    model_name=model_name,
+                    satmode=args.satmode)
     solver.train()

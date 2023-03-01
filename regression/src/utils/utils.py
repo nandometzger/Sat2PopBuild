@@ -8,6 +8,10 @@ import pandas as pd
 
 from tqdm import tqdm
 
+import torch
+from pylab import figure, imshow, matshow, grid, savefig, colorbar
+
+
 def get_fnames_labs(path):
     """
     Gets Files Names of all files of sen2spring
@@ -115,3 +119,15 @@ def get_fnames_labs_citywise_reg(city):
         labs_all = np.append(labs_all, labs, axis=0)
 
     return f_names_all, labs_all
+
+
+def plot_2dmatrix(matrix, fig=1, vmin=None, vmax=None):
+    if torch.is_tensor(matrix):
+        if matrix.is_cuda:
+            matrix = matrix.cpu()
+        matrix = matrix.numpy()
+    figure(fig)
+    matshow(matrix, interpolation='nearest', vmin=vmin, vmax=vmax)
+    grid(True)
+    colorbar()
+    savefig('plot_outputs/last_plot.png')
