@@ -122,7 +122,7 @@ class Solver(object):
             self.model = self.model(input_channels=10, num_classes=self.num_classes, scale_factor=self.model_scale)
         else:
             if self.satmode:
-                self.model = self.model(input_channels=8, num_classes=self.num_classes)
+                self.model = self.model(input_channels=4, num_classes=self.num_classes)
             else:
                 self.model = self.model(input_channels=10, num_classes=self.num_classes)
         self.model.to(self.device)

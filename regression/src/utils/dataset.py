@@ -80,7 +80,8 @@ class PopulationDataset(Dataset):
                 osm_X = generate_osm_data(osm_X, ID_osm, mm_scaler, channels=1)
                 lu_X = generate_data(lu_X, ID_lu, channels=4, data='lu') 
 
-                return np.concatenate((sen2spr_X, viirs_X, lu_X), axis=0), osm_X , np.argmax(lu_X,0)>0.5
+                return np.concatenate((sen2spr_X, viirs_X), axis=0), osm_X , np.argmax(lu_X,0)>0.5
+                # return np.concatenate((sen2spr_X, viirs_X, lu_X), axis=0), osm_X , np.argmax(lu_X,0)>0.5
             else:
                 sen2spr_X = np.empty((*self.dim, 3))
                 viirs_X = np.empty((*self.dim, 1))
