@@ -19,15 +19,25 @@ except:
     print("couldn't init EE")
     ee.Authenticate(auth_mode="localhost")
     ee.Initialize()
+    # gcloud auth application-default login --no-browser
 
 from rasterio.crs import CRS
 EE_CRS = CRS.from_epsg(4326)
 
 
 MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland"]
-medium = ["Italy", "Spain"] 
+
+zipfiledir = "/scratch/metzgern/HAC/data/MSBuildingsRaw"
+zipnames = {"Germany": "Germany.zip", "United Kingdom": "United Kingdom.zip", "Netherlands":"Netherlands.zip", "France": "France.zip", "Switzerland": "Switzerland.zip", "Ireland": "Ireland.zip"}
+medium = ["Italy", "Spain"]
+
+# Check for Ireland, ...
+# "paris, marseille
+from_local_files = {"nantes": "France.zip", "lyon": "France.zip"}
+
+
 MSmanually_blocked_cities = ["zaragoza", "bologna", "murcia", "alicante", "palma", "valencia",
-                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona"]
+                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona", "dublin", "valladolid", "milan"]
 MSmanually_checked_cities = {"riga": "Latvia", 
                              "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy",
                              "bilbao": "Spain", "valladolid": "Spain","lisbon": "Portugal"}
@@ -35,14 +45,24 @@ MSmanually_checked_cities = {"riga": "Latvia",
 rename_countries = {"Czechia": "Czech_Republic"}
 
 # MSdone_cities = ["zagreb", "budapest", "riga", "bari"]
-MSdone_cities = ["zagreb", "budapest", "riga", "bari", "plovdiv", "bucharest", "gdansk",
-                #  ""
+MSdone_cities = ["zagreb", "budapest", "riga", "bari", "plovdiv", "bucharest", "gdansk",  "valladolid", "milan", 
+                # "genoa" 
+                # "brno", "turin"
+                ]
+
+S1done_cities = [
+                "leipzig","zagreb", "budapest", "riga", "edinburgh", "london", "bucharest", "turin", "stockholm", "essen", "sevilla", "birmingham", "naples", "bilbao", "cluj-napoca", "frankfurtammain",
+                "preston", "milan", "poznan", "warsaw", "alicante", "berlin", "hannover", "bologna", "stoke-on-trent", "amsterdam", "barcelona", "bielefeld", "stuttgart", "muenster", "marseille", "zurich", "glasfow", 
+                "zaragoza", "gdansk", "dresden", "edinburgh", "palermo", "palma", "valencia", "bydgoszcz", "hamburg", "szececin", "manchester", "valladolid", "mannheim", "athens", "swansea" ,
+                "rome", "murcia", "leicester", "bologna", "sunderland", "cluj-napoca", "newport", "antwerpen",
+                # "sevilla",  "brno", "essen", "bremen", "malaga", "florence", "genoa", "toulouse"
+                # "hannover", "brno", "milan", "preston", "nantes", "essen", "turin" 
+                #  "stoke-on-trent", "murcia", "rome" 
+                # "dresden", "london", "bari", "plovdiv", "gdansk", "zaragoza", "glasgow", "marseille", "stuttgart", "glasgow", "zurich", "marseille", "muenster", "stoke-on-trent"
+
+                # "dublin"
                  ]
-S1done_cities = ["leipzig","zagreb", "budapest", "riga", "edinburgh", "london", "bucharest"
-                 
-                "dresden", "london", "bari", "plovdiv", "gdansk", "zaragoza", "glasgow", "marseille", "stuttgart", "glasgow", "zurich", "marseille", "muenster",
-                
-                 ]
+
 
 def write_raster_like(output, output_path, guide_tiff):
     with rasterio.Env():
@@ -51,7 +71,7 @@ def write_raster_like(output, output_path, guide_tiff):
             meta = src.meta.copy()
         # guide_tiff["reader"].close()
 
-        meta.update({"driver": "GTiff", "count": output.shape[0]})
+        meta.update({"driver": "GTiff", "count": output.shape[0], "dtype": "float32"})
 
         with rasterio.open(output_path, 'w', **meta) as dst:
             for ch in range(output.shape[0]):
@@ -77,9 +97,7 @@ def get_country_name(file_name):
         width = src.width
         this_crs = src.crs
 
-    # get the coordinates in their local coodinate system
-    # height = band1.shape[0]
-    # width = band1.shape[1]
+    # get the coordinates in their local coodinate system 
     cols, rows = np.meshgrid(np.arange(width), np.arange(height))
     xs, ys = rasterio.transform.xy(src.transform, rows, cols)
     lons = np.array(xs)
@@ -104,7 +122,7 @@ def get_country_name(file_name):
     return country_name, polyshape
 
 
-def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
+def process_data(target_data_dir,MS_downlaod_dir, force_reprocessMSB=False, force_reprocessS1=False):
     city_folders = glob.glob(join(target_data_dir, "*"))
     f_names_all = np.array([])
     labs_all = np.array([])
@@ -137,7 +155,15 @@ def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
         #     # print("There is no MSB data for:", country_name)
         #     continue
 
-        if country_name is None:
+        # manual_files = {}
+        # if country_name in MSB_no_data_countries:
+        #     if country_name not in manual_files.keys():
+        #         # manual_files["country_name"] = pd.concat([chunk for chunk in tqdm(pd.read_csv(join(zipfiledir, zipnames[country_name]), chunksize=1000), desc='Loading data')])
+        #         manual_files["country_name"] = pd.concat([chunk for chunk in tqdm(gpd.read_file(join(zipfiledir, zipnames[country_name]), chunksize=1000), desc='Loading data')])
+        #         # manual_files["country_name"] = gpd.read_file(join(zipfiledir, zipnames[country_name]))
+
+
+        if country_name is None:    
             # there are some cities where countryname== is still oke, because they are by the sea
             if city in MSmanually_checked_cities.keys(): 
                 country_name = MSmanually_checked_cities[city]
@@ -190,7 +216,7 @@ def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
             if city in MSmanually_blocked_cities:
                 process_MSB = False
 
-            if isfile(file_name_MSBs) and (not force_reprocess):
+            if isfile(file_name_MSBs) and (not force_reprocessMSB):
                 process_MSB = False
 
 
@@ -294,10 +320,14 @@ def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
             # Also put the Sentinel-1 tile with the correct projection in the correct folder
             # Check if downloading of S1 is needed
             process_S1 = True 
-            if (city in S1done_cities) and (not force_reprocess):
+                
+            if isfile(file_name_S1):
                 process_S1 = False
 
-            if isfile(file_name_S1):
+            if force_reprocessS1:
+                process_S1 = True
+
+            if (city in S1done_cities):
                 process_S1 = False
 
 
@@ -316,7 +346,9 @@ def process_data(target_data_dir,MS_downlaod_dir, force_reprocess=False):
 if __name__=="__main__":
 
     target_data_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/So2Sat_POP_Part1/train'
+    # target_data_dir = '/scratch/metzgern/HAC/data/So2Sat_POP_Part1/train'
     MS_downlaod_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/'
+    # MS_downlaod_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/'
 
     process_data(target_data_dir, MS_downlaod_dir)
 

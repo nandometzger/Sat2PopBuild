@@ -41,21 +41,23 @@ EE_CRS = CRS.from_epsg(4326)
 MSB_no_data_countries = ["Germany", "United Kingdom", "Netherlands", "France", "Switzerland", "Ireland", "Belgium"]
 medium = ["Italy", "Spain"]
 MSmanually_blocked_cities = ["zaragoza", "bologna", "murcia", "alicante", "palma", "valencia",
-                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona", "tallinn"]
+                             "sevilla", "cordoba", "madrid", "catania", "malaga", "florence", "barcelona", "tallinn", "milan"]
 good = ["Croatia", "Slovakia", "Bulgaria", "Czechia", "Romania", "Sweden", "Greece", "Austria", "Finland",
         "Denmark", "Latvia", "Bulgaria", "Lithuania", "Norway"]
 
 MSmanually_checked_cities = {"riga": "Latvia", 
-                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy", "naples": "Italy", "turin": "Italy", "genoa": "Italy",
-                             "bilbao": "Spain", "valladolid": "Spain","lisbon": "Portugal"}
+                             "bari": "Italy", "palermo": "Italy", "rome": "Italy", "milan": "Italy",
+                             "naples": "Italy", "turin": "Italy","genoa": "Italy",
+                             "bilbao": "Spain","lisbon": "Portugal"}
 
 rename_countries = {"Czechia": "Czech_Republic"}
 
 
 # done_cities = ["zagreb", "budapest", "riga", "bari"]
 MSdone_cities = ["zagreb", "budapest", "riga", "bari"] + ["plovdiv", "gdansk", "bucharest"] + ["murcia", "rome", "sofia",
-                "warsaw", "wroclaw", "poznan", "oslo", "brno", "milan", "timisoara", "genoa", "vilnius", "lubin", "bilbao", "copenhagen", "cluj-napoca",
-                "prague", "milan", "lodz", "naples", "helsinki", "bratislava", "stockholm", "katowice", "palermo"
+                "warsaw", "wroclaw", "poznan", "oslo", "brno", "timisoara", "genoa", "vilnius", "lubin", "bilbao", "copenhagen", "cluj-napoca",
+                "prague", "milan", "lodz", "naples", "helsinki", "bratislava", "stockholm", "katowice", "palermo", "vienna", "varna", "tirana",
+                "athens", "valladolid", "szczecin", "bydgoszcz", "turin"
                 ]
 
 S1done_cities = ["leipzig", "zagreb", "budapest" , "riga" , "edinburgh" , "dresden"] + [ #zagreb
@@ -65,7 +67,8 @@ S1done_cities = ["leipzig", "zagreb", "budapest" , "riga" , "edinburgh" , "dresd
                 "vilnius", "catania", "lubin", "hannover", "berlin", "alicante", "liverpool", "madrid", "reading", "rotterdam", "bilbao", "cardiff",
                 "copenhagen", "nates", "karlsruhe", "cluj-napoca", "frankfurtammain", "prague", "dublin", "preston",  "tallinn",  "milan",  "lodz", "naples",
                 "lisbon", "thessaloniki", "nurenberg", "helsinki", "nantes", "katowice",
-                "bratislava", "stockholm", "valencia", "utrecht", "palma", "lyon", "cologne", "katowice", "palermo"
+                "bratislava", "stockholm", "valencia", "utrecht", "palma", "lyon", "cologne", "katowice", "palermo", "vienna", "varna", "antwerpen", "tirana",
+                "bristol", "sheffield", "swansea", "newport", "athens", "cordoba", "mannheim", "valladolid", "manchester", "szczecin", "hamburg", "sevilla", "bydgoszcz", "turin"
                 ]
 
 # gcloud auth login --remote-bootstrap="https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=517222506229-vsmmajv00ul0bs7p89v5m89qs8eb9359.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsdk.cloud.google.com%2Fapplicationdefaultauthcode.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fearthengine+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdevstorage.full_control+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faccounts.reauth&state=JxOD4NAMO70eVCK3e5VK5Ga53M2CGF&prompt=consent&access_type=offline&code_challenge=JqIR_YDSAVUNu5pkOruqBeB84xNrT0mXAbTGvWmdlxU&code_challenge_method=S256"
@@ -116,7 +119,7 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
     MS_downlaod_dir = '/scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/'
 
     city_folders = glob.glob(join(path, "*"))
-    inv = False
+    inv = True
     if inv:
         city_folders = city_folders[::-1]
 
@@ -147,6 +150,11 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
         if country_name in medium:
             print("Disclaimer: please check if there is really MS data available")  
             # raise Exception("Still need to check the availablitiy of MSB footprints for cities here")
+        if country_name in MSB_no_data_countries:
+            print("sus...")
+
+        if country_name=="Netherlands":
+            print("suess")
         
         # continue
         city_idx = 0
@@ -181,10 +189,10 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
             if city in MSdone_cities:
                 download_MSB = False 
             if country_name is None:
-                # there are some cities where countryname== is still oke, because they are by the sea
+                # there are some cities where countryname==None is still oke, because they are by the sea
                 if city in MSmanually_checked_cities.keys():
-                    pass
                     country_name = MSmanually_checked_cities[city]
+                    pass
                 else:
                     download_MSB = False 
             if city in MSmanually_blocked_cities:
@@ -198,7 +206,6 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
                 download_S1 = False
             if isfile(S1file):
                 download_S1 = False
-
 
             if download_MSB or download_S1: 
                 this_country, exportarea = get_country_name(file_name)
@@ -244,7 +251,7 @@ def extend_dataset(path, data_to_download=["MSBuildings"]):
                 collectionS1 = collectionS1.filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH'))
                 collectionS1 = collectionS1.filter(ee.Filter.eq('orbitProperties_pass', orbit))
                 collectionS1 = collectionS1.filterBounds(exportarea)
-                collectionS1 = collectionS1.filter(ee.Filter.contains('.geo', exportarea));
+                collectionS1 = collectionS1.filter(ee.Filter.contains('.geo', exportarea))
                 collectionS1 = collectionS1.filterDate(Sentinel1_start_date, Sentinel1_finish_date)
                 collectionS1 = collectionS1.select(['VV', 'VH'])
                 # collectionS1_first = ee.Image(collectionS1.sort("", False).first())
@@ -315,5 +322,5 @@ if __name__=="__main__":
     # cd /scratch2/metzgern/misc/ethzdrivemount
     # rsync -a So2Satdata* /scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/
     # rsync -r So2Satdata* /scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/ --ignore-existing
-    # rsync -r So2Satdata* /scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/ --ignore-existing --info=progress2 --info=name0
+    # rsync -r So2Satdata* /scratch2/metzgern/HAC/code/So2SatPOP/data/GEEexport/ --info=progress2 --info=name0 --ignore-existing
 

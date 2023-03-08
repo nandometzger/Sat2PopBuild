@@ -38,7 +38,7 @@
             "args": [
                 // "--no-osm"
             ]
-        }
+        },
         {
             "name": "process_MSB.py",
             "type": "python",
@@ -49,6 +49,14 @@
             "args": [
                 // "--no-osm"
             ]
+        },
+        {
+            "name": "make MSB GIS friendly",
+            "type": "python",
+            "request": "launch",
+            "program": "regression/src/make_gis_friendly.py",
+            "console": "integratedTerminal",
+            
         }
     ]
 }
